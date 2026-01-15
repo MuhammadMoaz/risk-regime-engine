@@ -28,7 +28,10 @@ def main():
     log_daily_returns = np.log(btc_hist['Close'] / btc_hist['Close'].shift(1))
     btc_hist['Log Daily Returns'] = log_daily_returns
     # 2. Get average of returns for 7 day window
+    btc_hist['7 Day Avg Return'] = btc_hist['Log Daily Returns'].rolling(window=7).mean()
     # 3. Calc sample stdev
+    stdev = btc_hist['7 Day Avg Return'].std()
+    print(stdev)
     # 4. (Optional) annualize volatility
     # 5. Roll the window (2->8, 3->9, etc)
 
