@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 def fetch_data():
     print()
@@ -38,6 +39,33 @@ def main():
     btc_hist['7 Day Rolling Volatility Ann'] = (btc_hist['7 Day Rolling Volatility'] * np.sqrt(365))
 
     print(btc_hist.tail(10))
+
+    # Plot
+    # Pick threshold (80th percentile)
+    vol = btc_hist['7 Day Rolling Volatility'].dropna()
+    threshold = vol.quantile(0.8)
+    btc_hist['High Volatility'] = btc_hist['7 Day Rolling Volatility'] >= threshold
+
+    print("High vol %:", btc_hist['High Volatility'].mean())
+    print("Threshold:", threshold)
+
+    # Plot the close data
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.plot(btc_hist.index, btc_hist['Close'], linewidth=1)
+    ax.set_title("Close Series")
+
+    # Shade the high vol areas
+    mask = btc_hist['High Volatility'].fillna(False)
+    change = mask.ne(mask.shift()).cumsum()
+    high_groups = btc_hist[mask].groupby(change)
+
+    for _, grp in high_groups:
+        start = grp.index[0]
+        end = grp.index[-1]
+        ax.axvspan(start, end, facecolor='purple', alpha=0.2)
+
+    plt.savefig(f"Plots/BTC_Figure.png")
+    plt.clf()
 
 
 main()
