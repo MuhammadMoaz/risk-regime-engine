@@ -35,7 +35,7 @@ def main():
     # 3. Roll the window (2->8, 3->9, etc)
     btc_hist['7 Day Rolling Volatility'] = btc_hist['Daily Log Returns'].rolling(window=7).std()
 
-    # 4. (Optional) annualize volatility
+    # 4. annualize volatility
     btc_hist['7 Day Rolling Volatility Ann'] = (btc_hist['7 Day Rolling Volatility'] * np.sqrt(365))
 
     print(btc_hist.tail(10))
@@ -98,7 +98,7 @@ def main():
 
     print(btc_hist['Regime'].value_counts(normalize=True))
 
-    # Visualise BTC Close Shaded by Regime
+    # Visualise BTC Close shaded by regime
     regime_colours = {
         'HIGH_VOL': 'purple',
         'CALM_UP': 'green',
@@ -127,7 +127,6 @@ def main():
 
         ax.axvspan(start, end, facecolor=regime_colours[regime], alpha=0.15)
 
-    # plt.tight_layout()
     plt.savefig("Plots/BTC_Regime_Shaded.png")
     plt.clf()
 
@@ -174,4 +173,7 @@ def main():
     plt.ylabel('Forward Return')
     plt.show()
     
+    ## Regime to Tradeable Stratgey
+    
+
 main()
