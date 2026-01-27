@@ -140,27 +140,27 @@ def main():
     analysis_30d = btc_hist.dropna(subset=['Regime', 'Fwd_30D'])
     
     summary_7d = analysis_7d.groupby('Regime')['Fwd_7D'].agg(
-        mean='mean',
-        median='median',
-        std='std',
+        mean="mean",
+        median="median",
+        std="std",
         win_rate=lambda x: (x > 0).mean(),
-        count='count'
+        count="count"
     )
 
     summary_14d = analysis_14d.groupby('Regime')['Fwd_14D'].agg(
-        mean='mean',
-        median='median',
-        std='std',
+        mean="mean",
+        median="median",
+        std="std",
         win_rate=lambda x: (x > 0).mean(),
-        count='count'
+        count="count"
     )
 
     summary_30d = analysis_30d.groupby('Regime')['Fwd_30D'].agg(
-        mean='mean',
-        median='median',
-        std='std',
+        mean="mean",
+        median="median",
+        std="std",
         win_rate=lambda x: (x > 0).mean(),
-        count='count'
+        count="count"
     )
 
     print(summary_7d)
@@ -174,6 +174,114 @@ def main():
     plt.show()
     
     ## Regime to Tradeable Stratgey
+    # Choose horizon to trade on
+    HORIZON = '7D'
+
+    if HORIZON == "7D":
+        summary = summary_7d.copy()
+        fwd_col = "Fwd_7D"
+    elif HORIZON == "14D":
+        summary = summary_14d.copy()
+        fwd_col = "Fwd_14D"
+    elif HORIZON == "30D":
+        summary = summary_30d.copy()
+        fwd_col = "Fwd_30D"
+    else:
+        raise ValueError("Invalid Horizon")
     
+    # risk adjusted scoring
+    # Sharpe like score
+    summary["risk_adjusted_score"] = summary["mean"] / summary["std"]
+
+    # confidence weighting
+    summary["confidence_weight"] = np.log(summary["count"])
+
+    # final score
+    summary["final_score"] = summary["risk_adjusted_score"] * summary["confidence_weight"]
+
+    print(summary[["mean", "std", "count", "final_score"]])
+
+    # converting scores to signals
+
+    high_thresh = summary["final_score"].quantile(0.66)
+    low_thresh = summary["final_score"].quantile(0.33)
+
+    def score_to_signal(score):
+        if score >= high_thresh:
+            return "RISK_ON"
+        elif score <= low_thresh:
+            return "RISK_OFF"
+        else:
+            return "NEUTRAL"
+        
+    summary["Signal"] = summary["final_score"].apply(score_to_signal)
+
+    print(summary[["final_score", "Signal"]])
+
+    # mapping signals back to time series
+
+    regime_to_signal = summary["Signal"].to_dict()
+    btc_hist["Signal"] = btc_hist["Regime"].map(regime_to_signal)
+
+    print(btc_hist["Signal"].value_counts(normalize=True))
+
+    # forward performance by signal (checks)
+
+    signal_perf = (
+        btc_hist
+        .dropna(subset=[fwd_col, "Signal"])
+        .groupby("Signal")[fwd_col]
+        .agg(
+            mean="mean",
+            median="median",
+            std="std",
+            win_rate=lambda x: (x>0).mean(),
+            count="count"
+        )
+    )
+
+    print(signal_perf)
+
+    # visualising signal shading
+
+    signal_colours = {
+        "RISK_ON": "green",
+        "NEUTRAL": "grey",
+        "RISK_OFF": "red"
+    }
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.plot(btc_hist.index, btc_hist["Close"], linewidth=1)
+    ax.set_title(f"BTC Close with Signal Shading ({HORIZON})")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("BTC Close")
+
+    signal_series = btc_hist["Signal"].fillna("NONE")
+    change = signal_series.ne(signal_series.shift()).cumsum()
+    groups = btc_hist.groupby(change)
+
+    for _, grp in groups:
+        sig = grp["Signal"].iloc[0]
+
+        if sig not in signal_colours:
+            continue
+
+        ax.axvspan(
+            grp.index[0],
+            grp.index[-1],
+            facecolor=signal_colours[sig],
+            alpha=0.12
+        )
+
+    plt.savefig(f"Plots/BTC_Signal_Shaded_{HORIZON}.png")
+    plt.clf()
+
+    # actionable output
+
+    latest = btc_hist.dropna(subset=["Signal"]).iloc[-1]
+
+    print("Date:", latest.name.date())
+    print("Regime:", latest["Regime"])
+    print("Signal:", latest["Signal"])
 
 main()
