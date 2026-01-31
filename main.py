@@ -361,4 +361,34 @@ def main():
     print("Max Drawdown (Strategy): ", btc_hist["Strategy Drawdown"].min())
     print("Max Drawdown (Buy and Hold): ", btc_hist["BuyHold Drawdown"].min())
 
+    # Perfromance stats table
+    def performance_stats(returns, equity):
+        return {
+            "Total Return": equity.iloc[-1] - 1,
+            "Annual Volatiltiy": returns.std() * np.sqrt(365),
+            "Sharpe (no rf)": returns.mean() / returns.std() * np.sqrt(365),
+            "Max Drawdown": (equity / equity.cummax() - 1).min()
+        }
+    
+    strategy_stats = performance_stats(
+        btc_hist["Strategy Return"].dropna(),
+        btc_hist["Strategy Equity"].dropna()
+    )
+
+    buyhold_stats = performance_stats(
+        btc_hist["Daily Returns"].dropna(),
+        btc_hist["BuyHold Equity"].dropna()
+    )
+
+    summary = pd.DataFrame([strategy_stats, buyhold_stats], index=["Strategy", "Buy and Hold"])
+
+    print(summary)
+
+    print("Strategy start equity:", btc_hist["Strategy Equity"].dropna().iloc[0])
+    print("Strategy end equity:", btc_hist["Strategy Equity"].dropna().iloc[-1])
+    print("BuyHold start equity:", btc_hist["BuyHold Equity"].dropna().iloc[0])
+    print("BuyHold end equity:", btc_hist["BuyHold Equity"].dropna().iloc[-1])
+
+    print(btc_hist[["Daily Returns", "Strategy Return"]].describe())
+
 main()
