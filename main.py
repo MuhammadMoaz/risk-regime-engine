@@ -346,4 +346,19 @@ def main():
     plt.savefig("Plots/BTC_Phase4_Equity.png")
     plt.clf()
 
+    # drawdowns
+    btc_hist["Strategy Peak"] = btc_hist["Strategy Equity"].cummax()
+    btc_hist["BuyHold Peak"] = btc_hist["BuyHold Equity"].cummax()
+
+    btc_hist["Strategy Drawdown"] = (
+        btc_hist["Strategy Equity"] / btc_hist["Strategy Peak"] - 1
+    )
+
+    btc_hist["BuyHold Drawdown"] = (
+        btc_hist["BuyHold Equity"] / btc_hist["BuyHold Peak"] - 1
+    )
+
+    print("Max Drawdown (Strategy): ", btc_hist["Strategy Drawdown"].min())
+    print("Max Drawdown (Buy and Hold): ", btc_hist["BuyHold Drawdown"].min())
+
 main()
