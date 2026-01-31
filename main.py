@@ -284,4 +284,66 @@ def main():
     print("Regime:", latest["Regime"])
     print("Signal:", latest["Signal"])
 
+    # Phase 4 Backtesting
+    # Convert signals to position sizes
+    signal_to_position = {
+        "RISK_ON": 1.0,
+        "NEUTRAL": 0.5,
+        "RISK_OFF": 0.0
+    }
+
+    btc_hist["Position"] = btc_hist["Signal"].map(signal_to_position)
+    print(btc_hist[["Signal", "Position"]].dropna().head())
+
+    # Compute daily returns
+    btc_hist["Strategy Return"] = (
+        btc_hist["Daily Returns"] * btc_hist["Position"]
+    )
+
+    print(
+        btc_hist[["Daily Returns", "Position", "Strategy Return"]]
+        .dropna()
+        .head()
+    )
+
+    # calculate compound returns (equity curves)
+    btc_hist["Strategy Equity"] = (
+        1 + btc_hist["Strategy Return"]
+    ).cumprod()
+
+    btc_hist["BuyHold Equity"] = (
+        1 + btc_hist["Daily Returns"]
+    ).cumprod()
+
+    print(
+        btc_hist[["Strategy Equity", "BuyHold Equity"]]
+        .dropna()
+        .tail()
+    )
+
+    # visualising equirty curves
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    ax.plot(
+        btc_hist.index,
+        btc_hist["BuyHold Equity"],
+        label="Buy and Hold",
+        alpha=0.7
+    )
+
+    ax.plot(
+        btc_hist.index,
+        btc_hist["Strategy Equity"],
+        label="Regime Strategy",
+        alpha=0.9
+    )
+
+    ax.set_title("Equity Curve: Strategy vs Buy and Hold")
+    ax.set_xlabel("Growth of $1")
+    ax.set_ylabel("Date")
+    ax.legend()
+
+    plt.savefig("Plots/BTC_Phase4_Equity.png")
+    plt.clf()
+
 main()
